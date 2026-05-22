@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+
+  workspaces Workspace[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId String
+  owner   User @relation(fields: [ownerId], references: [id])
+
+  socialAccounts SocialAccount[]
+  posts          Post[]
+}
+
+model SocialAccount {
+  id           String    @id @default(cuid())
+  platform     Platform
+  accessToken  String
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  postTargets PostTarget[]
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  content     String
+  mediaUrl    String?
+  status      PostStatus @default(DRAFT)
+  scheduledAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  targets PostTarget[]
+}
+
+model PostTarget {
+  id              String     @id @default(cuid())
+  status          PostStatus @default(DRAFT)
+  publishedAt     DateTime?
+  errorMessage    String?
+  createdAt       DateTime   @default(now())
+
+  postId          String
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  socialAccountId String
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+}

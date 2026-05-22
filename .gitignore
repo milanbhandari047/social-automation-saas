@@ -1,0 +1,28 @@
+# dependencies
+node_modules
+
+# build outputs
+dist
+build
+
+# Next.js
+.next
+
+# Turbo cache
+.turbo
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# logs
+logs
+*.log
+
+# OS files
+.DS_Store
+
+# Prisma
+packages/db/dist
+packages/db/node_modules

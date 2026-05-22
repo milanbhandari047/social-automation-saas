@@ -1,0 +1,8 @@
+- [x] Diagnose TS module resolution issue for `@repo/db` import in `apps/api`
+- [x] Update `packages/db/package.json` to expose compiled entrypoints/types via `dist/` (`main`, `types`, `exports`, `build` script)
+- [x] Update `packages/db/tsconfig.json` to emit declarations to `dist/`
+- [x] Add `@repo/db` as dependency to `apps/api/package.json`
+- [x] Install workspace deps (`pnpm i`)
+- [x] Build `apps/api` to verify TS error is fixed
+- [ ] (Follow-up) Fix `@repo/db` build failing due to deprecated TS compiler options in `packages/db/tsconfig.json`
+- [ ] Ensure `packages/db` build succeeds (deprecation ignore flags)
