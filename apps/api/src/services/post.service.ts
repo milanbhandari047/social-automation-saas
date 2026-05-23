@@ -1,4 +1,5 @@
 import { prisma } from "@repo/db";
+import { postQueue } from "../queues/post.queue";
 
 /**
  * CREATE POST
@@ -24,7 +25,8 @@ export const createPostService = async (
     throw new Error("Workspace not found");
   }
 
-  return prisma.post.create({
+  // create post
+  const post = await prisma.post.create({
     data: {
       content: data.content,
       mediaUrl: data.mediaUrl,
@@ -33,6 +35,27 @@ export const createPostService = async (
       status: data.scheduledAt ? "SCHEDULED" : "DRAFT",
     },
   });
+
+  /**
+   * ADD JOB TO QUEUE IF SCHEDULED
+   */
+  if (post.scheduledAt) {
+    const delay = new Date(post.scheduledAt).getTime() - Date.now();
+
+    await postQueue.add(
+      "publish-post",
+      {
+        postId: post.id,
+      },
+      {
+        delay,
+      }
+    );
+
+    console.log("✅ Job added to queue");
+  }
+
+  return post;
 };
 
 /**
