@@ -21,7 +21,6 @@ export const worker = new Worker(
     console.log("🚀 Processing Job:", job.name);
 
     const { postId } = job.data;
-
     console.log("📌 Post ID:", postId);
 
     /**
@@ -30,7 +29,11 @@ export const worker = new Worker(
     const post = await prisma.post.findUnique({
       where: { id: postId },
       include: {
-        workspace: true,
+        targets: {
+          include: {
+            socialAccount: true,
+          },
+        },
       },
     });
 
@@ -38,44 +41,69 @@ export const worker = new Worker(
       throw new Error("Post not found");
     }
 
-    try {
-      /**
-       * PUBLISH TO FACEBOOK
-       */
-      console.log("📤 Publishing to Facebook...");
+    /**
+     * PUBLISH TO EACH TARGET PLATFORM
+     */
+    for (const target of post.targets) {
+      const platform = target.socialAccount.platform;
 
-      await publishToFacebook(post.content);
+      try {
+        console.log(`📤 Posting to ${platform}...`);
 
-      /**
-       * UPDATE STATUS → PUBLISHED
-       */
-      await prisma.post.update({
-        where: { id: postId },
-        data: {
-          status: "PUBLISHED",
-        },
-      });
+        if (platform === "FACEBOOK") {
+          await publishToFacebook(post.content);
+        }
 
-      console.log("✅ Post published successfully");
-    } catch (error) {
-      console.error("❌ Facebook publish failed:", error);
+        if (platform === "INSTAGRAM") {
+          console.log("Instagram integration coming next");
+        }
 
-      /**
-       * UPDATE STATUS → FAILED
-       */
-      await prisma.post.update({
-        where: { id: postId },
-        data: {
-          status: "FAILED",
-        },
-      });
+        if (platform === "TIKTOK") {
+          console.log("TikTok integration coming next");
+        }
 
-      throw error;
+        await prisma.postTarget.update({
+          where: { id: target.id },
+          data: {
+            status: "PUBLISHED",
+            publishedAt: new Date(),
+          },
+        });
+
+        console.log(`✅ Successfully posted to ${platform}`);
+      } catch (err) {
+        console.error(`❌ Failed to post to ${platform}:`, err);
+
+        await prisma.postTarget.update({
+          where: { id: target.id },
+          data: {
+            status: "FAILED",
+            errorMessage: String(err),
+          },
+        });
+      }
     }
+
+    /**
+     * UPDATE OVERALL POST STATUS
+     */
+    const targets = await prisma.postTarget.findMany({
+      where: { postId },
+    });
+
+    const allPublished = targets.every((t: any) => t.status === "PUBLISHED");
+    const allFailed = targets.every((t: any) => t.status === "FAILED");
+
+    await prisma.post.update({
+      where: { id: postId },
+      data: {
+        status: allPublished ? "PUBLISHED" : allFailed ? "FAILED" : "PARTIAL",
+      },
+    });
+
+    console.log("✅ Job processing complete");
   },
-  {
-    connection,
-  }
+  { connection }
 );
 
 /**

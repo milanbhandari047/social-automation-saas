@@ -10,14 +10,12 @@ import {
  */
 export const createPost = async (req: any, res: any) => {
   try {
-    const post = await createPostService(req.user.userId, req.body);
+    const result = await createPostService(req.user.userId, req.body);
 
-    res.json(post);
+    return res.json(result);
   } catch (error: any) {
-    console.log(error);
-
-    res.status(500).json({
-      message: error.message || "Failed to create post",
+    return res.status(500).json({
+      message: error.message,
     });
   }
 };
@@ -32,11 +30,9 @@ export const getWorkspacePosts = async (req: any, res: any) => {
       req.params.workspaceId
     );
 
-    res.json(posts);
+    return res.json(posts);
   } catch (error: any) {
-    console.log(error);
-
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message || "Failed to fetch posts",
     });
   }
@@ -49,11 +45,9 @@ export const getPostById = async (req: any, res: any) => {
   try {
     const post = await getPostByIdService(req.user.userId, req.params.id);
 
-    res.json(post);
+    return res.json(post);
   } catch (error: any) {
-    console.log(error);
-
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message || "Failed to fetch post",
     });
   }
@@ -66,13 +60,11 @@ export const deletePost = async (req: any, res: any) => {
   try {
     await deletePostService(req.user.userId, req.params.id);
 
-    res.json({
+    return res.json({
       message: "Post deleted successfully",
     });
   } catch (error: any) {
-    console.log(error);
-
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message || "Failed to delete post",
     });
   }

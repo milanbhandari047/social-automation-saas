@@ -11,9 +11,9 @@ export const createPostService = async (
     mediaUrl?: string;
     workspaceId: string;
     scheduledAt?: string;
+    socialAccountIds: string[];
   }
 ) => {
-  // verify workspace ownership
   const workspace = await prisma.workspace.findFirst({
     where: {
       id: data.workspaceId,
@@ -25,7 +25,6 @@ export const createPostService = async (
     throw new Error("Workspace not found");
   }
 
-  // create post
   const post = await prisma.post.create({
     data: {
       content: data.content,
@@ -36,24 +35,23 @@ export const createPostService = async (
     },
   });
 
-  /**
-   * ADD JOB TO QUEUE IF SCHEDULED
-   */
-  if (post.scheduledAt) {
-    const delay = new Date(post.scheduledAt).getTime() - Date.now();
+  await prisma.postTarget.createMany({
+    data: data.socialAccountIds.map((id) => ({
+      postId: post.id,
+      socialAccountId: id,
+      status: "DRAFT",
+    })),
+  });
 
-    await postQueue.add(
-      "publish-post",
-      {
-        postId: post.id,
-      },
-      {
-        delay,
-      }
-    );
+  const delay = data.scheduledAt
+    ? new Date(data.scheduledAt).getTime() - Date.now()
+    : 0;
 
-    console.log("✅ Job added to queue");
-  }
+  await postQueue.add(
+    "publish-post",
+    { postId: post.id },
+    { delay: delay > 0 ? delay : 0 }
+  );
 
   return post;
 };
@@ -80,6 +78,13 @@ export const getWorkspacePostsService = async (
     where: {
       workspaceId,
     },
+    include: {
+      targets: {
+        include: {
+          socialAccount: true,
+        },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -91,11 +96,14 @@ export const getWorkspacePostsService = async (
  */
 export const getPostByIdService = async (userId: string, postId: string) => {
   const post = await prisma.post.findUnique({
-    where: {
-      id: postId,
-    },
+    where: { id: postId },
     include: {
       workspace: true,
+      targets: {
+        include: {
+          socialAccount: true,
+        },
+      },
     },
   });
 
@@ -115,12 +123,8 @@ export const getPostByIdService = async (userId: string, postId: string) => {
  */
 export const deletePostService = async (userId: string, postId: string) => {
   const post = await prisma.post.findUnique({
-    where: {
-      id: postId,
-    },
-    include: {
-      workspace: true,
-    },
+    where: { id: postId },
+    include: { workspace: true },
   });
 
   if (!post) {
@@ -132,9 +136,7 @@ export const deletePostService = async (userId: string, postId: string) => {
   }
 
   await prisma.post.delete({
-    where: {
-      id: postId,
-    },
+    where: { id: postId },
   });
 
   return true;
