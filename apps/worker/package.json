@@ -12,13 +12,14 @@
   "description": "",
   "dependencies": {
     "@repo/db": "workspace:*",
+    "axios": "^1.16.1",
     "bullmq": "^5.76.10",
     "ioredis": "^5.10.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "typescript": "5.9.3",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "5.9.3"
   }
 }

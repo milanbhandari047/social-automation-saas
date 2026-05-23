@@ -1,14 +1,21 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { prisma } from "@repo/db";
+import { publishToFacebook } from "../services/facebook.service";
 
+/**
+ * REDIS CONNECTION
+ */
 const connection = new IORedis({
   host: "127.0.0.1",
   port: 6379,
   maxRetriesPerRequest: null,
 });
 
-const worker = new Worker(
+/**
+ * BULLMQ WORKER
+ */
+export const worker = new Worker(
   "postQueue",
   async (job) => {
     console.log("🚀 Processing Job:", job.name);
@@ -21,8 +28,9 @@ const worker = new Worker(
      * FIND POST
      */
     const post = await prisma.post.findUnique({
-      where: {
-        id: postId,
+      where: { id: postId },
+      include: {
+        workspace: true,
       },
     });
 
@@ -30,38 +38,55 @@ const worker = new Worker(
       throw new Error("Post not found");
     }
 
-    /**
-     * SIMULATE SOCIAL MEDIA PUBLISHING
-     */
-    console.log("📤 Publishing post...");
-    console.log(post.content);
+    try {
+      /**
+       * PUBLISH TO FACEBOOK
+       */
+      console.log("📤 Publishing to Facebook...");
 
-    /**
-     * UPDATE STATUS
-     */
-    await prisma.post.update({
-      where: {
-        id: postId,
-      },
-      data: {
-        status: "PUBLISHED",
-      },
-    });
+      await publishToFacebook(post.content);
 
-    console.log("✅ Post published successfully");
+      /**
+       * UPDATE STATUS → PUBLISHED
+       */
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          status: "PUBLISHED",
+        },
+      });
+
+      console.log("✅ Post published successfully");
+    } catch (error) {
+      console.error("❌ Facebook publish failed:", error);
+
+      /**
+       * UPDATE STATUS → FAILED
+       */
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          status: "FAILED",
+        },
+      });
+
+      throw error;
+    }
   },
   {
     connection,
   }
 );
 
+/**
+ * EVENTS
+ */
 worker.on("completed", (job) => {
   console.log(`✅ Job completed: ${job.id}`);
 });
 
 worker.on("failed", (job, err) => {
-  console.log(`❌ Job failed: ${job?.id}`);
-  console.log(err);
+  console.error(`❌ Job failed: ${job?.id}`, err);
 });
 
 console.log("🚀 Post worker started...");
