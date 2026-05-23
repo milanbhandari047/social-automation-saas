@@ -1,8 +1,34 @@
-- [x] Diagnose TS module resolution issue for `@repo/db` import in `apps/api`
-- [x] Update `packages/db/package.json` to expose compiled entrypoints/types via `dist/` (`main`, `types`, `exports`, `build` script)
-- [x] Update `packages/db/tsconfig.json` to emit declarations to `dist/`
-- [x] Add `@repo/db` as dependency to `apps/api/package.json`
-- [x] Install workspace deps (`pnpm i`)
-- [x] Build `apps/api` to verify TS error is fixed
-- [ ] (Follow-up) Fix `@repo/db` build failing due to deprecated TS compiler options in `packages/db/tsconfig.json`
-- [ ] Ensure `packages/db` build succeeds (deprecation ignore flags)
+🔥 NEXT RECOMMENDED STEP
+
+Do this immediately next:
+
+👉 “fix workspace binding in oauth”
+
+because that converts your OAuth from demo-level → real SaaS architecture 🚀
+
+🚀 YOUR NEXT PHASE AFTER RESET
+
+You’ll have a VERY clean production-level base.
+
+Then next big upgrades are:
+
+✅ Instagram Graph API
+✅ Retry + exponential backoff
+✅ Media upload support
+✅ Analytics tracking
+✅ Team members / roles
+✅ Subscription billing
+✅ AI caption generation
+✅ Queue monitoring dashboard
+
+Your architecture is already strong.
+
+At that point you are ready for:
+
+✅ Instagram Graph API
+✅ Media uploads
+✅ Retry/backoff system
+✅ Analytics
+✅ Team roles
+✅ Billing
+✅ AI features

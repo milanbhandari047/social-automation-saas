@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/**
+ * =========================
+ * ENUMS
+ * =========================
+ */
+
 enum Platform {
   FACEBOOK
   INSTAGRAM
@@ -18,7 +24,14 @@ enum PostStatus {
   SCHEDULED
   PUBLISHED
   FAILED
+  PARTIAL
 }
+
+/**
+ * =========================
+ * USER
+ * =========================
+ */
 
 model User {
   id        String   @id @default(cuid())
@@ -30,57 +43,162 @@ model User {
   workspaces Workspace[]
 }
 
+/**
+ * =========================
+ * WORKSPACE
+ * =========================
+ */
+
 model Workspace {
   id        String   @id @default(cuid())
   name      String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /**
+   * OWNER
+   */
   ownerId String
   owner   User @relation(fields: [ownerId], references: [id])
 
+  /**
+   * RELATIONS
+   */
   socialAccounts SocialAccount[]
   posts          Post[]
 }
 
+/**
+ * =========================
+ * CONNECTED SOCIAL ACCOUNTS
+ * =========================
+ */
+
 model SocialAccount {
-  id           String    @id @default(cuid())
-  platform     Platform
+  id String @id @default(cuid())
+
+  /**
+   * FACEBOOK / INSTAGRAM / TIKTOK
+   */
+  platform Platform
+
+  /**
+   * TOKENS
+   */
   accessToken  String
   refreshToken String?
-  createdAt    DateTime  @default(now())
 
+  /**
+   * PLATFORM ACCOUNT INFO
+   */
+  accountId   String  @unique
+  accountName String?
+
+  username     String?
+  profileImage String?
+
+  /**
+   * FLEXIBLE JSON DATA
+   * followers, category, page info, etc.
+   */
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  /**
+   * WORKSPACE RELATION
+   */
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  /**
+   * RELATIONS
+   */
   postTargets PostTarget[]
 }
 
-model Post {
-  id          String     @id @default(cuid())
-  content     String
-  mediaUrl    String?
-  status      PostStatus @default(DRAFT)
-  scheduledAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+/**
+ * =========================
+ * POSTS
+ * =========================
+ */
 
+model Post {
+  id String @id @default(cuid())
+
+  /**
+   * CONTENT
+   */
+  content  String
+  mediaUrl String?
+
+  /**
+   * STATUS
+   */
+  status PostStatus @default(DRAFT)
+
+  /**
+   * SCHEDULING
+   */
+  scheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /**
+   * WORKSPACE RELATION
+   */
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  /**
+   * RELATIONS
+   */
   targets PostTarget[]
 }
 
+/**
+ * =========================
+ * POST TARGETS
+ * ONE POST -> MANY PLATFORMS
+ * =========================
+ */
+
 model PostTarget {
-  id              String     @id @default(cuid())
-  status          PostStatus @default(DRAFT)
-  publishedAt     DateTime?
-  errorMessage    String?
-  createdAt       DateTime   @default(now())
+  id String @id @default(cuid())
 
-  postId          String
-  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /**
+   * PUBLISH STATUS
+   */
+  status PostStatus @default(DRAFT)
 
+  /**
+   * PLATFORM RESPONSE DATA
+   */
+  platformPostId String?
+  publishedUrl   String?
+
+  /**
+   * ERROR HANDLING
+   */
+  errorMessage String?
+
+  /**
+   * TIMESTAMPS
+   */
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  /**
+   * POST RELATION
+   */
+  postId String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  /**
+   * SOCIAL ACCOUNT RELATION
+   */
   socialAccountId String
   socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
 }
