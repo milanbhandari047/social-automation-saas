@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { prisma } from "@repo/db";
+
 import { publishToFacebook } from "../services/facebook.service";
 
 /**
@@ -19,15 +20,19 @@ export const worker = new Worker(
   "postQueue",
   async (job) => {
     console.log("🚀 Processing Job:", job.name);
+    console.log(`🔁 Retry attempt: ${job.attemptsMade + 1}`);
 
     const { postId } = job.data;
+
     console.log("📌 Post ID:", postId);
 
     /**
      * FIND POST
      */
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+      },
       include: {
         targets: {
           include: {
@@ -42,7 +47,13 @@ export const worker = new Worker(
     }
 
     /**
-     * PUBLISH TO EACH TARGET PLATFORM
+     * TRACK RESULT STATES
+     */
+    let hasFailure = false;
+    let hasSuccess = false;
+
+    /**
+     * LOOP THROUGH TARGETS
      */
     for (const target of post.targets) {
       const platform = target.socialAccount.platform;
@@ -50,60 +61,104 @@ export const worker = new Worker(
       try {
         console.log(`📤 Posting to ${platform}...`);
 
+        /**
+         * FACEBOOK
+         */
         if (platform === "FACEBOOK") {
           await publishToFacebook(post.content);
         }
 
+        /**
+         * INSTAGRAM
+         */
         if (platform === "INSTAGRAM") {
-          console.log("Instagram integration coming next");
+          console.log("📸 Instagram integration coming next");
         }
 
+        /**
+         * TIKTOK
+         */
         if (platform === "TIKTOK") {
-          console.log("TikTok integration coming next");
+          console.log("🎵 TikTok integration coming next");
         }
 
+        /**
+         * UPDATE TARGET SUCCESS
+         */
         await prisma.postTarget.update({
-          where: { id: target.id },
+          where: {
+            id: target.id,
+          },
           data: {
             status: "PUBLISHED",
             publishedAt: new Date(),
+            errorMessage: null,
           },
         });
+
+        hasSuccess = true;
 
         console.log(`✅ Successfully posted to ${platform}`);
-      } catch (err) {
-        console.error(`❌ Failed to post to ${platform}:`, err);
+      } catch (error: any) {
+        console.log(`❌ Failed posting to ${platform}`);
 
+        hasFailure = true;
+
+        /**
+         * UPDATE TARGET FAILED
+         */
         await prisma.postTarget.update({
-          where: { id: target.id },
+          where: {
+            id: target.id,
+          },
           data: {
             status: "FAILED",
-            errorMessage: String(err),
+            errorMessage: error.message || "Unknown error",
           },
         });
+
+        console.log(error);
+
+        /**
+         * THROW ERROR
+         * IMPORTANT:
+         * This triggers BullMQ retries
+         */
+        throw error;
       }
     }
 
     /**
      * UPDATE OVERALL POST STATUS
      */
-    const targets = await prisma.postTarget.findMany({
-      where: { postId },
-    });
+    let finalStatus: any = "DRAFT";
 
-    const allPublished = targets.every((t: any) => t.status === "PUBLISHED");
-    const allFailed = targets.every((t: any) => t.status === "FAILED");
+    if (hasSuccess && !hasFailure) {
+      finalStatus = "PUBLISHED";
+    }
+
+    if (!hasSuccess && hasFailure) {
+      finalStatus = "FAILED";
+    }
+
+    if (hasSuccess && hasFailure) {
+      finalStatus = "FAILED";
+    }
 
     await prisma.post.update({
-      where: { id: postId },
+      where: {
+        id: postId,
+      },
       data: {
-        status: allPublished ? "PUBLISHED" : allFailed ? "FAILED" : "PARTIAL",
+        status: finalStatus,
       },
     });
 
     console.log("✅ Job processing complete");
   },
-  { connection }
+  {
+    connection,
+  }
 );
 
 /**
@@ -114,7 +169,8 @@ worker.on("completed", (job) => {
 });
 
 worker.on("failed", (job, err) => {
-  console.error(`❌ Job failed: ${job?.id}`, err);
+  console.log(`❌ Job failed: ${job?.id}`);
+  console.log(err);
 });
 
 console.log("🚀 Post worker started...");

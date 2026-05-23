@@ -9,4 +9,15 @@ const connection = new IORedis({
 
 export const postQueue = new Queue("postQueue", {
   connection,
+  defaultJobOptions: {
+    attempts: 5, // 🔥 retry 5 times
+
+    backoff: {
+      type: "exponential",
+      delay: 5000, // 5 sec → 10 → 20 → 40 ...
+    },
+
+    removeOnComplete: 100,
+    removeOnFail: 500,
+  },
 });
