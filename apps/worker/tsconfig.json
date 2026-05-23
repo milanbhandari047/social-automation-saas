@@ -4,9 +4,12 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@repo/*": ["../../packages/*/src"]
     }
-  }
+  },
+  "exclude": ["node_modules"]
 }
