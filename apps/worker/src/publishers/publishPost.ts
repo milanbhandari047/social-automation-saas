@@ -15,6 +15,6 @@ export const publishPost = async (payload: PublishPayload) => {
       return publishToTikTok(payload);
 
     default:
-      throw new Error("Unsupported platform: " + payload.platform);
+      throw new Error("Unsupported platform");
   }
 };
