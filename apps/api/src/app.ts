@@ -9,6 +9,7 @@ import postRoutes from "./routes/post.routes";
 import oauthRoutes from "./routes/oauth.routes";
 import analyticsRoutes from "./modules/analytics/routes/analytics.routes";
 import mediaRoutes from "./modules/media/media.routes";
+import aiRoutes from "./modules/ai/ai.routes";
 
 app.use(cors());
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/oauth", oauthRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/media", mediaRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   res.json({
