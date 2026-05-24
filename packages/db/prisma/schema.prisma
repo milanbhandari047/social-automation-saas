@@ -145,6 +145,8 @@ model Post {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  publishedAt DateTime?
+  failedAt DateTime?
 
   /**
    * WORKSPACE RELATION
@@ -189,6 +191,9 @@ model PostTarget {
    */
   publishedAt DateTime?
   createdAt   DateTime @default(now())
+
+  retryCount Int @default(0)
+
 
   /**
    * POST RELATION
