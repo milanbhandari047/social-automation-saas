@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { prisma } from "@repo/db";
 
-import { publishToFacebook } from "../services/facebook.service";
+import { publishPost } from "../publishers";
 
 /**
  * REDIS CONNECTION
@@ -56,31 +56,18 @@ export const worker = new Worker(
      * LOOP THROUGH TARGETS
      */
     for (const target of post.targets) {
-      const platform = target.socialAccount.platform;
-
       try {
-        console.log(`📤 Posting to ${platform}...`);
+        console.log(`📤 Posting to ${target.socialAccount.platform}...`);
 
         /**
-         * FACEBOOK
+         * UNIVERSAL PUBLISHER ENGINE
          */
-        if (platform === "FACEBOOK") {
-          await publishToFacebook(post.content);
-        }
-
-        /**
-         * INSTAGRAM
-         */
-        if (platform === "INSTAGRAM") {
-          console.log("📸 Instagram integration coming next");
-        }
-
-        /**
-         * TIKTOK
-         */
-        if (platform === "TIKTOK") {
-          console.log("🎵 TikTok integration coming next");
-        }
+        await publishPost({
+          platform: target.socialAccount.platform,
+          content: post.content,
+          accessToken: target.socialAccount.accessToken,
+          accountId: target.socialAccount.accountId!,
+        });
 
         /**
          * UPDATE TARGET SUCCESS
@@ -98,9 +85,11 @@ export const worker = new Worker(
 
         hasSuccess = true;
 
-        console.log(`✅ Successfully posted to ${platform}`);
+        console.log(
+          `✅ Successfully posted to ${target.socialAccount.platform}`
+        );
       } catch (error: any) {
-        console.log(`❌ Failed posting to ${platform}`);
+        console.log(`❌ Failed posting to ${target.socialAccount.platform}`);
 
         hasFailure = true;
 
