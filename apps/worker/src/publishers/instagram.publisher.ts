@@ -2,9 +2,9 @@ import axios from "axios";
 import { PublishPayload } from "./types";
 
 export const publishToInstagram = async (payload: PublishPayload) => {
-  const { content, accessToken, accountId, mediaUrls } = payload;
+  const { content, accessToken, accountId, mediaUrl } = payload;
 
-  if (!mediaUrls || mediaUrls.length === 0) {
+  if (!mediaUrl || mediaUrl.length === 0) {
     throw new Error("Instagram requires at least one media URL");
   }
 
@@ -15,7 +15,7 @@ export const publishToInstagram = async (payload: PublishPayload) => {
       null,
       {
         params: {
-          image_url: mediaUrls[0],
+          image_url: mediaUrl[0],
           caption: content,
           access_token: accessToken,
         },

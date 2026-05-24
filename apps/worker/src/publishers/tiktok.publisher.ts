@@ -83,13 +83,13 @@ const waitForProcessing = async (
  * 🚀 MAIN FUNCTION
  */
 export const publishToTikTok = async (payload: PublishPayload) => {
-  const { content, mediaUrls, accessToken } = payload;
+  const { content, mediaUrl, accessToken } = payload;
 
-  if (!mediaUrls?.length) {
+  if (!mediaUrl?.length) {
     throw new Error("TikTok requires a video URL");
   }
 
-  const videoUrl = mediaUrls[0];
+  const videoUrl = mediaUrl[0];
 
   try {
     console.log("🎵 TikTok publish started...");

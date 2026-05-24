@@ -45,6 +45,7 @@ export const processPost = async (job: any) => {
         content: post.content,
         accessToken: target.socialAccount.accessToken,
         accountId: target.socialAccount.accountId!,
+        mediaUrl: post.mediaUrl,
       });
 
       /**

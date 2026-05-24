@@ -116,7 +116,7 @@ Add:
 - image/video upload (S3)
 - media optimization
 - caption templates
-- AI content generation (optional upgrade)
+- AI content generation
 
 ---
 

@@ -1,6 +1,7 @@
 import { publishToFacebook } from "./facebook.publisher";
 import { publishToInstagram } from "./instagram.publisher";
 import { publishToTikTok } from "./tiktok.publisher";
+
 import { PublishPayload } from "./types";
 
 export const publishPost = async (payload: PublishPayload) => {
@@ -15,6 +16,6 @@ export const publishPost = async (payload: PublishPayload) => {
       return publishToTikTok(payload);
 
     default:
-      throw new Error("Unsupported platform");
+      throw new Error(`Unsupported platform: ${payload.platform}`);
   }
 };

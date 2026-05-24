@@ -1,9 +1,10 @@
 export type Platform = "FACEBOOK" | "INSTAGRAM" | "TIKTOK";
 
-export type PublishPayload = {
-  platform: Platform;
+export interface PublishPayload {
+  platform: string;
   content: string;
   accessToken: string;
   accountId: string;
-  mediaUrls?: string[];
-};
+
+  mediaUrl?: string | null;
+}
