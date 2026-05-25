@@ -1,3 +1,4 @@
+import { openrouterGenerate } from "./providers/openrouter.provider";
 import { groqGenerate } from "./providers/groq.provider";
 import { geminiGenerate } from "./providers/gemini.provider";
 import { buildCaptionPrompt } from "./prompts/caption.prompt";
@@ -18,9 +19,29 @@ export const generateCaptionAI = async ({
   });
 
   // =========================
-  // PRIMARY AI => GROQ
+  // PRIMARY AI => OPENROUTER
   // =========================
+  try {
+    console.log("🔥 Trying OpenRouter...");
 
+    const result = await openrouterGenerate(prompt);
+
+    if (result) {
+      return {
+        caption: result,
+        provider: "openrouter",
+      };
+    }
+  } catch (error: any) {
+    console.log(
+      "⚠️ OpenRouter failed, switching to Groq...",
+      error?.response?.data || error.message
+    );
+  }
+
+  // =========================
+  // FALLBACK 1 => GROQ
+  // =========================
   try {
     console.log("🔥 Trying Groq...");
 
@@ -32,14 +53,16 @@ export const generateCaptionAI = async ({
         provider: "groq",
       };
     }
-  } catch (error) {
-    console.log("⚠️ Groq failed, switching to Gemini...");
+  } catch (error: any) {
+    console.log(
+      "⚠️ Groq failed, switching to Gemini...",
+      error?.response?.data || error.message
+    );
   }
 
   // =========================
-  // FALLBACK AI => GEMINI
+  // FALLBACK 2 => GEMINI
   // =========================
-
   try {
     console.log("🔥 Trying Gemini...");
 
@@ -51,8 +74,11 @@ export const generateCaptionAI = async ({
         provider: "gemini",
       };
     }
-  } catch (error) {
-    console.log("❌ Gemini also failed");
+  } catch (error: any) {
+    console.log(
+      "❌ Gemini also failed:",
+      error?.response?.data || error.message
+    );
   }
 
   throw new Error("All AI providers failed");
