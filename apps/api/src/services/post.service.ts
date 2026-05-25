@@ -25,6 +25,29 @@ export const createPostService = async (
     throw new Error("Workspace not found");
   }
 
+  // ✅ Validate social accounts exist and belong to this workspace
+  const validAccounts = await prisma.socialAccount.findMany({
+    where: {
+      id: { in: data.socialAccountIds },
+      workspaceId: data.workspaceId,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (validAccounts.length === 0) {
+    throw new Error("No valid social accounts found for this workspace.");
+  }
+
+  const validIds = validAccounts.map((a: any) => a.id);
+  const invalidIds = data.socialAccountIds.filter(
+    (id) => !validIds.includes(id)
+  );
+
+  if (invalidIds.length > 0) {
+    console.warn("⚠️ Invalid social account IDs skipped:", invalidIds);
+  }
+
   const post = await prisma.post.create({
     data: {
       content: data.content,
@@ -32,14 +55,17 @@ export const createPostService = async (
       workspaceId: data.workspaceId,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
       status: data.scheduledAt ? "SCHEDULED" : "DRAFT",
+      aiGenerated: false,
     },
   });
 
+  // ✅ Only use validated IDs
   await prisma.postTarget.createMany({
-    data: data.socialAccountIds.map((id) => ({
+    data: validIds.map((id: any) => ({
       postId: post.id,
       socialAccountId: id,
       status: "DRAFT",
+      retryCount: 0,
     })),
   });
 

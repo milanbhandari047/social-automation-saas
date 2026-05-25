@@ -17,14 +17,30 @@ enum Platform {
   FACEBOOK
   INSTAGRAM
   TIKTOK
+  LINKEDIN
+  TWITTER
 }
 
 enum PostStatus {
   DRAFT
   SCHEDULED
+  PROCESSING
   PUBLISHED
   FAILED
   PARTIAL
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
 }
 
 /**
@@ -38,9 +54,25 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  createdAt DateTime @default(now())
+  avatar    String?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /**
+   * OWNED WORKSPACES
+   */
   workspaces Workspace[]
+
+  /**
+   * TEAM MEMBERSHIPS
+   */
+  memberships WorkspaceMember[]
+
+  /**
+   * AUDIT LOGS
+   */
+  auditLogs AuditLog[]
 }
 
 /**
@@ -50,8 +82,8 @@ model User {
  */
 
 model Workspace {
-  id        String   @id @default(cuid())
-  name      String
+  id   String @id @default(cuid())
+  name String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -63,10 +95,63 @@ model Workspace {
   owner   User @relation(fields: [ownerId], references: [id])
 
   /**
+   * SUBSCRIPTION
+   */
+  plan SubscriptionPlan @default(FREE)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  /**
+   * USAGE TRACKING
+   */
+  monthlyPostCount Int @default(0)
+  aiUsageCount     Int @default(0)
+
+  /**
+   * LIMITS
+   */
+  maxPostsPerMonth Int @default(50)
+  maxTeamMembers   Int @default(1)
+
+  /**
    * RELATIONS
    */
   socialAccounts SocialAccount[]
   posts          Post[]
+  members        WorkspaceMember[]
+  auditLogs      AuditLog[]
+}
+
+/**
+ * =========================
+ * WORKSPACE MEMBERS
+ * =========================
+ */
+
+model WorkspaceMember {
+  id String @id @default(cuid())
+
+  /**
+   * ROLE
+   */
+  role WorkspaceRole @default(VIEWER)
+
+  createdAt DateTime @default(now())
+
+  /**
+   * USER RELATION
+   */
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /**
+   * WORKSPACE RELATION
+   */
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
 }
 
 /**
@@ -89,10 +174,12 @@ model SocialAccount {
   accessToken  String
   refreshToken String?
 
+  tokenExpiresAt DateTime?
+
   /**
    * PLATFORM ACCOUNT INFO
    */
-  accountId   String  @unique
+  accountId   String @unique
   accountName String?
 
   username     String?
@@ -100,11 +187,16 @@ model SocialAccount {
 
   /**
    * FLEXIBLE JSON DATA
-   * followers, category, page info, etc.
    */
   metadata Json?
 
+  /**
+   * STATUS
+   */
+  isActive Boolean @default(true)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   /**
    * WORKSPACE RELATION
@@ -116,6 +208,8 @@ model SocialAccount {
    * RELATIONS
    */
   postTargets PostTarget[]
+
+  @@index([workspaceId])
 }
 
 /**
@@ -126,13 +220,17 @@ model SocialAccount {
 
 model Post {
   id String @id @default(cuid())
-  
 
   /**
    * CONTENT
    */
   content  String
   mediaUrl String?
+
+  /**
+   * AI GENERATED
+   */
+  aiGenerated Boolean @default(false)
 
   /**
    * STATUS
@@ -144,10 +242,13 @@ model Post {
    */
   scheduledAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /**
+   * TIMESTAMPS
+   */
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
-  failedAt DateTime?
+  failedAt    DateTime?
 
   /**
    * WORKSPACE RELATION
@@ -159,6 +260,10 @@ model Post {
    * RELATIONS
    */
   targets PostTarget[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([scheduledAt])
 }
 
 /**
@@ -191,10 +296,15 @@ model PostTarget {
    * TIMESTAMPS
    */
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
+  failedAt    DateTime?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /**
+   * RETRIES
+   */
   retryCount Int @default(0)
-
 
   /**
    * POST RELATION
@@ -207,4 +317,44 @@ model PostTarget {
    */
   socialAccountId String
   socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([status])
+}
+
+/**
+ * =========================
+ * AUDIT LOGS
+ * =========================
+ */
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  /**
+   * ACTION
+   */
+  action String
+
+  /**
+   * OPTIONAL METADATA
+   */
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  /**
+   * USER RELATION
+   */
+  userId String?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /**
+   * WORKSPACE RELATION
+   */
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([action])
 }
