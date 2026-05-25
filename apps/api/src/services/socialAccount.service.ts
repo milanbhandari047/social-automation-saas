@@ -1,7 +1,9 @@
 import { prisma } from "@repo/db";
 
 /**
- * CREATE SOCIAL ACCOUNT
+ * =========================
+ * CREATE SOCIAL ACCOUNT (MEMBERSHIP BASED ACCESS)
+ * =========================
  */
 export const createSocialAccountService = async (
   userId: string,
@@ -9,41 +11,80 @@ export const createSocialAccountService = async (
     platform: "FACEBOOK" | "INSTAGRAM" | "TIKTOK";
     accessToken: string;
     workspaceId: string;
+    accountId: string;
+    accountName?: string;
+    refreshToken?: string;
   }
 ) => {
-  // verify workspace ownership
+  // ✅ FIX: check membership instead of only owner
   const workspace = await prisma.workspace.findFirst({
     where: {
       id: data.workspaceId,
-      ownerId: userId,
+      members: {
+        some: {
+          userId,
+        },
+      },
     },
   });
 
   if (!workspace) {
-    throw new Error("Workspace not found");
+    throw new Error("Workspace not found or no access");
   }
 
-  return prisma.socialAccount.create({
-    data,
+  return prisma.socialAccount.upsert({
+    where: {
+      accountId: data.accountId,
+    },
+    update: {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      accountName: data.accountName,
+      isActive: true,
+      updatedAt: new Date(),
+    },
+    create: {
+      platform: data.platform,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      accountId: data.accountId,
+      accountName: data.accountName,
+      workspaceId: data.workspaceId,
+      isActive: true,
+    },
   });
 };
 
 /**
- * GET SOCIAL ACCOUNTS
+ * =========================
+ * GET SOCIAL ACCOUNTS (MEMBERSHIP BASED ACCESS)
+ * =========================
  */
 export const getSocialAccountsService = async (
   userId: string,
   workspaceId: string
 ) => {
+  // 🔥 DEBUG CHECK (TEMPORARY)
+  const member = await prisma.workspaceMember.findFirst({
+    where: {
+      userId,
+      workspaceId,
+    },
+  });
+
   const workspace = await prisma.workspace.findFirst({
     where: {
       id: workspaceId,
-      ownerId: userId,
+      members: {
+        some: {
+          userId,
+        },
+      },
     },
   });
 
   if (!workspace) {
-    throw new Error("Workspace not found");
+    throw new Error("Workspace not found or no access");
   }
 
   return prisma.socialAccount.findMany({
@@ -52,9 +93,10 @@ export const getSocialAccountsService = async (
     },
   });
 };
-
 /**
- * DELETE SOCIAL ACCOUNT
+ * =========================
+ * DELETE SOCIAL ACCOUNT (SAFE RBAC CHECK)
+ * =========================
  */
 export const deleteSocialAccountService = async (
   userId: string,
@@ -64,8 +106,21 @@ export const deleteSocialAccountService = async (
     where: {
       id: socialAccountId,
     },
-    include: {
-      workspace: true,
+    select: {
+      id: true,
+      workspaceId: true,
+      workspace: {
+        select: {
+          members: {
+            where: {
+              userId,
+            },
+            select: {
+              role: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -73,15 +128,20 @@ export const deleteSocialAccountService = async (
     throw new Error("Social account not found");
   }
 
-  if (socialAccount.workspace.ownerId !== userId) {
+  const member = socialAccount.workspace.members[0];
+
+  if (!member) {
     throw new Error("Unauthorized");
   }
 
-  await prisma.socialAccount.delete({
+  // optional: restrict delete only to OWNER/ADMIN
+  if (!["OWNER", "ADMIN"].includes(member.role)) {
+    throw new Error("Insufficient permissions");
+  }
+
+  return prisma.socialAccount.delete({
     where: {
       id: socialAccountId,
     },
   });
-
-  return true;
 };

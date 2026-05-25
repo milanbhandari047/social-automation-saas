@@ -10,15 +10,19 @@ import {
 export const connectSocialAccount = async (req: any, res: any) => {
   try {
     const socialAccount = await createSocialAccountService(
-      req.user.userId,
+      req.user.id, // ✅ FIXED
       req.body
     );
 
-    res.json(socialAccount);
+    return res.status(201).json({
+      success: true,
+      data: socialAccount,
+    });
   } catch (error: any) {
     console.log(error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: error.message || "Failed to connect social account",
     });
   }
@@ -29,16 +33,29 @@ export const connectSocialAccount = async (req: any, res: any) => {
  */
 export const getSocialAccounts = async (req: any, res: any) => {
   try {
+    const { workspaceId } = req.params; // ✅ FIXED
+
+    if (!workspaceId) {
+      return res.status(400).json({
+        success: false,
+        message: "workspaceId is required",
+      });
+    }
+
     const socialAccounts = await getSocialAccountsService(
-      req.user.userId,
-      req.params.workspaceId
+      req.user.id, // ✅ FIXED
+      workspaceId
     );
 
-    res.json(socialAccounts);
+    return res.json({
+      success: true,
+      data: socialAccounts,
+    });
   } catch (error: any) {
     console.log(error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: error.message || "Failed to fetch social accounts",
     });
   }
@@ -49,15 +66,19 @@ export const getSocialAccounts = async (req: any, res: any) => {
  */
 export const deleteSocialAccount = async (req: any, res: any) => {
   try {
-    await deleteSocialAccountService(req.user.userId, req.params.id);
+    const { id: socialAccountId } = req.params; // ✅ FIXED
 
-    res.json({
+    await deleteSocialAccountService(req.user.id, socialAccountId);
+
+    return res.json({
+      success: true,
       message: "Social account deleted",
     });
   } catch (error: any) {
     console.log(error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: error.message || "Failed to delete social account",
     });
   }

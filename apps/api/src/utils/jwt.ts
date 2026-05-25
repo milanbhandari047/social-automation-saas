@@ -1,19 +1,52 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
 
-// CREATE TOKEN
-export const generateToken = (userId: string) => {
-  return jwt.sign({ userId }, JWT_SECRET, {
+/**
+ * =========================
+ * ACCESS TOKEN (SHORT LIVED)
+ * =========================
+ */
+export const generateAccessToken = (payload: any) => {
+  return jwt.sign(payload, ACCESS_SECRET, {
+    expiresIn: "30m",
+  });
+};
+
+/**
+ * =========================
+ * REFRESH TOKEN (LONG LIVED)
+ * =========================
+ */
+export const generateRefreshToken = (payload: any) => {
+  return jwt.sign(payload, REFRESH_SECRET, {
     expiresIn: "7d",
   });
 };
 
-// VERIFY TOKEN
-export const verifyToken = (token: string) => {
+/**
+ * =========================
+ * VERIFY ACCESS
+ * =========================
+ */
+export const verifyAccessToken = (token: string) => {
   try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (err) {
+    return jwt.verify(token, ACCESS_SECRET);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * =========================
+ * VERIFY REFRESH
+ * =========================
+ */
+export const verifyRefreshToken = (token: string) => {
+  try {
+    return jwt.verify(token, REFRESH_SECRET);
+  } catch {
     return null;
   }
 };
