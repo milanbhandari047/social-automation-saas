@@ -146,6 +146,13 @@ export const logout = async (req: any, res: any) => {
     const userId = req.user.id;
 
     await logoutService(userId);
+    // Must match the same options used when setting the cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
 
     res.clearCookie("refreshToken");
 
