@@ -7,11 +7,197 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/**
- * =========================
- * ENUMS
- * =========================
- */
+model User {
+  id          String            @id @default(cuid())
+  email       String            @unique
+  password    String
+  name        String?
+  createdAt   DateTime          @default(now())
+  avatar      String?
+  updatedAt   DateTime          @updatedAt
+  auditLogs   AuditLog[]
+  sessions    Session[]
+  workspaces  Workspace[]
+  memberships WorkspaceMember[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Workspace {
+  id                   String            @id @default(cuid())
+  name                 String
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  /// *
+  ///    * OWNER
+  ownerId              String
+  aiUsageCount         Int               @default(0)
+  /// *
+  ///    * LIMITS
+  maxPostsPerMonth     Int               @default(50)
+  maxTeamMembers       Int               @default(1)
+  /// *
+  ///    * USAGE TRACKING
+  monthlyPostCount     Int               @default(0)
+  /// *
+  ///    * SUBSCRIPTION
+  plan                 SubscriptionPlan  @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  auditLogs            AuditLog[]
+  posts                Post[]
+  socialAccounts       SocialAccount[]
+  owner                User              @relation(fields: [ownerId], references: [id])
+  members              WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  /// *
+  ///    * ROLE
+  role        WorkspaceRole @default(VIEWER)
+  createdAt   DateTime      @default(now())
+  /// *
+  ///    * USER RELATION
+  userId      String
+  /// *
+  ///    * WORKSPACE RELATION
+  workspaceId String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model SocialAccount {
+  id             String       @id @default(cuid())
+  /// *
+  ///    * FACEBOOK / INSTAGRAM / TIKTOK
+  platform       Platform
+  /// *
+  ///    * TOKENS
+  accessToken    String
+  refreshToken   String?
+  /// *
+  ///    * PLATFORM ACCOUNT INFO
+  accountId      String       @unique
+  accountName    String?
+  username       String?
+  profileImage   String?
+  /// *
+  ///    * FLEXIBLE JSON DATA
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  /// *
+  ///    * WORKSPACE RELATION
+  workspaceId    String
+  /// *
+  ///    * STATUS
+  isActive       Boolean      @default(true)
+  tokenExpiresAt DateTime?
+  updatedAt      DateTime     @updatedAt
+  postTargets    PostTarget[]
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Post {
+  id          String       @id @default(cuid())
+  /// *
+  ///    * CONTENT
+  content     String
+  mediaUrl    String?
+  /// *
+  ///    * STATUS
+  status      PostStatus   @default(DRAFT)
+  /// *
+  ///    * SCHEDULING
+  scheduledAt DateTime?
+  /// *
+  ///    * TIMESTAMPS
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  /// *
+  ///    * WORKSPACE RELATION
+  workspaceId String
+  failedAt    DateTime?
+  publishedAt DateTime?
+  /// *
+  ///    * AI GENERATED
+  aiGenerated Boolean      @default(false)
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  targets     PostTarget[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model PostTarget {
+  id              String        @id @default(cuid())
+  /// *
+  ///    * PUBLISH STATUS
+  status          PostStatus    @default(DRAFT)
+  /// *
+  ///    * PLATFORM RESPONSE DATA
+  platformPostId  String?
+  publishedUrl    String?
+  /// *
+  ///    * ERROR HANDLING
+  errorMessage    String?
+  /// *
+  ///    * TIMESTAMPS
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  /// *
+  ///    * POST RELATION
+  postId          String
+  /// *
+  ///    * SOCIAL ACCOUNT RELATION
+  socialAccountId String
+  /// *
+  ///    * RETRIES
+  retryCount      Int           @default(0)
+  failedAt        DateTime?
+  updatedAt       DateTime      @updatedAt
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([status])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  /// *
+  ///    * ACTION
+  action      String
+  /// *
+  ///    * OPTIONAL METADATA
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  /// *
+  ///    * USER RELATION
+  userId      String?
+  /// *
+  ///    * WORKSPACE RELATION
+  workspaceId String
+  user        User?     @relation(fields: [userId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([action])
+}
 
 enum Platform {
   FACEBOOK
@@ -24,10 +210,10 @@ enum Platform {
 enum PostStatus {
   DRAFT
   SCHEDULED
-  PROCESSING
   PUBLISHED
   FAILED
   PARTIAL
+  PROCESSING
 }
 
 enum WorkspaceRole {
@@ -41,331 +227,4 @@ enum SubscriptionPlan {
   FREE
   PRO
   BUSINESS
-}
-
-/**
- * =========================
- * USER
- * =========================
- */
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  avatar    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sessions  Session[]
-  /**
-   * OWNED WORKSPACES
-   */
-  workspaces Workspace[]
-
-  /**
-   * TEAM MEMBERSHIPS
-   */
-  memberships WorkspaceMember[]
-
-  /**
-   * AUDIT LOGS
-   */
-  auditLogs AuditLog[]
-}
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  refreshToken String   @unique
-  userAgent    String?
-  ipAddress    String?
-
-  createdAt    DateTime @default(now())
-  expiresAt    DateTime
-}
-/**
- * =========================
- * WORKSPACE
- * =========================
- */
-
-model Workspace {
-  id   String @id @default(cuid())
-  name String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /**
-   * OWNER
-   */
-  ownerId String
-  owner   User @relation(fields: [ownerId], references: [id])
-
-  /**
-   * SUBSCRIPTION
-   */
-  plan SubscriptionPlan @default(FREE)
-
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-
-  /**
-   * USAGE TRACKING
-   */
-  monthlyPostCount Int @default(0)
-  aiUsageCount     Int @default(0)
-
-  /**
-   * LIMITS
-   */
-  maxPostsPerMonth Int @default(50)
-  maxTeamMembers   Int @default(1)
-
-  /**
-   * RELATIONS
-   */
-  socialAccounts SocialAccount[]
-  posts          Post[]
-  members        WorkspaceMember[]
-  auditLogs      AuditLog[]
-}
-
-/**
- * =========================
- * WORKSPACE MEMBERS
- * =========================
- */
-
-model WorkspaceMember {
-  id String @id @default(cuid())
-
-  /**
-   * ROLE
-   */
-  role WorkspaceRole @default(VIEWER)
-
-  createdAt DateTime @default(now())
-
-  /**
-   * USER RELATION
-   */
-  userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  /**
-   * WORKSPACE RELATION
-   */
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, workspaceId])
-}
-
-/**
- * =========================
- * CONNECTED SOCIAL ACCOUNTS
- * =========================
- */
-
-model SocialAccount {
-  id String @id @default(cuid())
-
-  /**
-   * FACEBOOK / INSTAGRAM / TIKTOK
-   */
-  platform Platform
-
-  /**
-   * TOKENS
-   */
-  accessToken  String
-  refreshToken String?
-
-  tokenExpiresAt DateTime?
-
-  /**
-   * PLATFORM ACCOUNT INFO
-   */
-  accountId   String @unique
-  accountName String?
-
-  username     String?
-  profileImage String?
-
-  /**
-   * FLEXIBLE JSON DATA
-   */
-  metadata Json?
-
-  /**
-   * STATUS
-   */
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /**
-   * WORKSPACE RELATION
-   */
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  /**
-   * RELATIONS
-   */
-  postTargets PostTarget[]
-
-  @@index([workspaceId])
-}
-
-/**
- * =========================
- * POSTS
- * =========================
- */
-
-model Post {
-  id String @id @default(cuid())
-
-  /**
-   * CONTENT
-   */
-  content  String
-  mediaUrl String?
-
-  /**
-   * AI GENERATED
-   */
-  aiGenerated Boolean @default(false)
-
-  /**
-   * STATUS
-   */
-  status PostStatus @default(DRAFT)
-
-  /**
-   * SCHEDULING
-   */
-  scheduledAt DateTime?
-
-  /**
-   * TIMESTAMPS
-   */
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  publishedAt DateTime?
-  failedAt    DateTime?
-
-  /**
-   * WORKSPACE RELATION
-   */
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  /**
-   * RELATIONS
-   */
-  targets PostTarget[]
-
-  @@index([workspaceId])
-  @@index([status])
-  @@index([scheduledAt])
-}
-
-/**
- * =========================
- * POST TARGETS
- * ONE POST -> MANY PLATFORMS
- * =========================
- */
-
-model PostTarget {
-  id String @id @default(cuid())
-
-  /**
-   * PUBLISH STATUS
-   */
-  status PostStatus @default(DRAFT)
-
-  /**
-   * PLATFORM RESPONSE DATA
-   */
-  platformPostId String?
-  publishedUrl   String?
-
-  /**
-   * ERROR HANDLING
-   */
-  errorMessage String?
-
-  /**
-   * TIMESTAMPS
-   */
-  publishedAt DateTime?
-  failedAt    DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /**
-   * RETRIES
-   */
-  retryCount Int @default(0)
-
-  /**
-   * POST RELATION
-   */
-  postId String
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  /**
-   * SOCIAL ACCOUNT RELATION
-   */
-  socialAccountId String
-  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
-
-  @@index([postId])
-  @@index([status])
-}
-
-/**
- * =========================
- * AUDIT LOGS
- * =========================
- */
-
-model AuditLog {
-  id String @id @default(cuid())
-
-  /**
-   * ACTION
-   */
-  action String
-
-  /**
-   * OPTIONAL METADATA
-   */
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  /**
-   * USER RELATION
-   */
-  userId String?
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  /**
-   * WORKSPACE RELATION
-   */
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([action])
 }
