@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================
+   🎨  THEME — change anything here to update the whole app
+   ============================================================ */
+:root {
+  /* ── Accent color ── change these 6 lines to switch theme ── */
+  --accent: #ce993f;
+  --accent-dark: #d97706;
+  --accent-glow: rgba(245, 158, 11, 0.07);
+  --accent-border: rgba(245, 158, 11, 0.18);
+  --accent-text: rgba(245, 158, 11, 0.9);
+  --accent-shadow: rgba(245, 158, 11, 0.25);
+  --accent-focus: rgba(245, 158, 11, 0.1);
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-sans: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
+  --font-serif: "Georgia", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ── Backgrounds ────────────────────────────────────────── */
+  --bg: #0a0a0a;
+  --surface: #0d0d0d;
+  --surface-hover: #111111;
+  --surface-input: #111111;
+
+  /* ── Text — contrast ladder ─────────────────────────────── */
+  --text: #f0f0f0; /* headings, values          */
+  --text-secondary: #b0b0b0; /* body copy, nav items      */
+  --text-muted: #737373; /* descriptions, subtitles   */
+  --text-faint: #4a4a4a; /* section labels, hints     */
+  --text-disabled: #2e2e2e; /* truly disabled            */
+
+  /* ── Borders ────────────────────────────────────────────── */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(245, 158, 11, 0.4);
+  --border-error: rgba(239, 68, 68, 0.5);
+  --border-dash: rgba(255, 255, 255, 0.07);
+
+  /* ── Semantic ───────────────────────────────────────────── */
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.08);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --error-shadow: rgba(239, 68, 68, 0.08);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.08);
+
+  /* ── Misc ───────────────────────────────────────────────── */
+  --divider: #1a1a1a;
+  --radius: 0.625rem;
+
+  /* shadcn compatibility */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: #080808;
+  --secondary: #1a1a1a;
+  --secondary-foreground: var(--text-secondary);
+  --muted: #1a1a1a;
+  --muted-foreground: var(--text-muted);
+  --accent-foreground: #080808;
+  --destructive: var(--error);
+  --border: rgba(255, 255, 255, 0.06);
+  --input: var(--surface-input);
+  --ring: var(--accent);
+  --sidebar: #080808;
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: #080808;
+  --sidebar-accent: var(--accent-glow);
+  --sidebar-accent-foreground: var(--accent);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--accent);
+}
+
+/* ============================================================
+   🎨  PRESET THEMES  — apply with: data-theme="blue" on <html>
+   ============================================================ */
+
+[data-theme="blue"] {
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-glow: rgba(59, 130, 246, 0.07);
+  --accent-border: rgba(59, 130, 246, 0.18);
+  --accent-text: rgba(59, 130, 246, 0.9);
+  --accent-shadow: rgba(59, 130, 246, 0.25);
+  --accent-focus: rgba(59, 130, 246, 0.1);
+  --border-focus: rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="green"] {
+  --accent: #22c55e;
+  --accent-dark: #16a34a;
+  --accent-glow: rgba(34, 197, 94, 0.07);
+  --accent-border: rgba(34, 197, 94, 0.18);
+  --accent-text: rgba(34, 197, 94, 0.9);
+  --accent-shadow: rgba(34, 197, 94, 0.25);
+  --accent-focus: rgba(34, 197, 94, 0.1);
+  --border-focus: rgba(34, 197, 94, 0.4);
+}
+
+[data-theme="purple"] {
+  --accent: #a855f7;
+  --accent-dark: #9333ea;
+  --accent-glow: rgba(168, 85, 247, 0.07);
+  --accent-border: rgba(168, 85, 247, 0.18);
+  --accent-text: rgba(168, 85, 247, 0.9);
+  --accent-shadow: rgba(168, 85, 247, 0.25);
+  --accent-focus: rgba(168, 85, 247, 0.1);
+  --border-focus: rgba(168, 85, 247, 0.4);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+
+  html {
+    @apply font-sans;
+  }
+}
