@@ -12,7 +12,12 @@ import analyticsRoutes from "./modules/analytics/routes/analytics.routes";
 import mediaRoutes from "./modules/media/media.routes";
 import aiRoutes from "./modules/ai/ai.routes";
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // replace with your production domain
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 

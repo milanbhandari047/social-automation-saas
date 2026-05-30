@@ -1,6 +1,6 @@
 import axios from "axios";
 import { PublishPayload } from "./types";
-import { publishInstagramPost } from "src/services/instagram.service";
+import { publishInstagramPost } from "../services/instagram.service";
 
 export const publishToInstagram = async (payload: PublishPayload) => {
   try {

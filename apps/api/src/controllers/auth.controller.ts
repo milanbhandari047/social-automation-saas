@@ -33,7 +33,7 @@ export const register = async (req: any, res: any) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false, // Set to true in production (requires HTTPS),
+      secure: process.env.NODE_ENV === "production", // secure cookies only over HTTPS in production
       sameSite: "lax",
       path: "/", // Only send to refresh endpoint
     });
@@ -67,7 +67,7 @@ export const login = async (req: any, res: any) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false, // Set to true in production (requires HTTPS),
+      secure: process.env.NODE_ENV === "production", // secure cookies only over HTTPS in production
       sameSite: "lax", // Adjust as needed (strict/lax)
       path: "/", // Only send to refresh endpoint
     });
@@ -123,7 +123,7 @@ export const refresh = async (req: any, res: any) => {
 
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      secure: false, // Set to true in production (requires HTTPS),
+      secure: process.env.NODE_ENV === "production", // secure cookies only over HTTPS in production
       sameSite: "lax", // Adjust as needed (strict/lax)
       path: "/", // Make it available to all routes (or adjust as needed)
     });
@@ -155,5 +155,28 @@ export const logout = async (req: any, res: any) => {
     });
   } catch {
     return res.status(500).json({ message: "Logout failed" });
+  }
+};
+
+//* =========================
+//* GET CURRENT USER (ME)
+//* =========================
+
+export const me = async (req: any, res: any) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        createdAt: true,
+      },
+    });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ user });
+  } catch {
+    return res.status(500).json({ message: "Failed to fetch user" });
   }
 };

@@ -1,4 +1,4 @@
-import { publishTikTokPost } from "src/services/tiktok.service";
+import { publishTikTokPost } from "../services/tiktok.service";
 import { PublishPayload } from "./types";
 
 export const publishToTikTok = async (payload: PublishPayload) => {
