@@ -136,7 +136,7 @@ export default function WorkspacePage() {
       ownerId: "",
       maxPostsPerMonth: 50,
       monthlyPostCount: 0,
-      maxTeamMembers: 1,
+      maxTeamMembers: 5,
       createdAt: new Date().toISOString(),
       members: [],
     };
@@ -622,9 +622,13 @@ export default function WorkspacePage() {
                   },
                   {
                     label: "Team Members",
-                    value: `${members.length} / ${activeWorkspace.maxTeamMembers}`,
+                    value: `${
+                      members.filter((m) => m.role !== "OWNER").length
+                    } / ${activeWorkspace.maxTeamMembers}`,
                     pct:
-                      (members.length / activeWorkspace.maxTeamMembers) * 100,
+                      (members.filter((m) => m.role !== "OWNER").length /
+                        activeWorkspace.maxTeamMembers) *
+                      100,
                   },
                   { label: "Plan", value: activeWorkspace.plan, pct: null },
                 ].map((item) => (
@@ -668,7 +672,12 @@ export default function WorkspacePage() {
                           style={{
                             width: `${Math.min(item.pct, 100)}%`,
                             height: "100%",
-                            background: item.pct > 80 ? "#ef4444" : "#eab308",
+                            background:
+                              item.pct >= 100
+                                ? "#ef4444"
+                                : item.pct > 80
+                                ? "#f59e0b"
+                                : "#eab308",
                             borderRadius: "2px",
                             transition: "width 0.3s",
                           }}
@@ -715,7 +724,7 @@ export default function WorkspacePage() {
                       color: "#525252",
                     }}
                   >
-                    {members.length}
+                    {members.filter((m) => m.role !== "OWNER").length}
                   </span>
                 </div>
                 <button

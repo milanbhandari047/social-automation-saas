@@ -11,6 +11,7 @@ import {
   CreditCard,
   Zap,
   LogOut,
+  Plug,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,7 +30,8 @@ const navSections = [
   {
     label: "Content",
     items: [
-      { href: "/posts", label: "Posts", icon: Share2, badge: "Soon" },
+      { href: "/posts", label: "Posts", icon: Share2 },
+      { href: "/social-accounts", label: "Social Accounts", icon: Plug },
       {
         href: "/calendar",
         label: "Calendar",
@@ -160,7 +162,6 @@ export function Sidebar() {
             >
               {section.label}
             </p>
-
             <div
               style={{ display: "flex", flexDirection: "column", gap: "1px" }}
             >
@@ -212,13 +213,11 @@ export function Sidebar() {
                           }}
                         />
                       )}
-
                       <Icon
                         size={15}
                         color={active ? colors.accent : colors.textMuted}
                         strokeWidth={active ? 2.5 : 1.8}
                       />
-
                       <span
                         style={{
                           fontSize: typography.size.base,
@@ -231,7 +230,6 @@ export function Sidebar() {
                       >
                         {item.label}
                       </span>
-
                       {item.badge && (
                         <span
                           style={{
@@ -287,7 +285,6 @@ export function Sidebar() {
             </span>
             <Sparkles size={11} color={colors.accent} />
           </div>
-
           <p
             style={{
               margin: "0 0 8px",
@@ -298,7 +295,6 @@ export function Sidebar() {
           >
             5 posts used · 50/mo limit
           </p>
-
           <div
             style={{
               width: "100%",
@@ -317,7 +313,6 @@ export function Sidebar() {
               }}
             />
           </div>
-
           <button
             style={{
               width: "100%",

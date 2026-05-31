@@ -6,8 +6,9 @@ import { prisma } from "@repo/db";
  * CREATE WORKSPACE (WITH OWNER MEMBERSHIP)
  * =========================
  */
+// apps/api/src/services/workspace.service.ts
 export const createWorkspaceService = async (name: string, userId: string) => {
-  return await prisma.workspace.create({
+  const result = await prisma.workspace.create({
     data: {
       name,
       ownerId: userId,
@@ -18,10 +19,10 @@ export const createWorkspaceService = async (name: string, userId: string) => {
         },
       },
     },
-    include: {
-      members: true,
-    },
+    include: { members: true },
   });
+
+  return result;
 };
 
 /**

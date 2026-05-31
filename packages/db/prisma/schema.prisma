@@ -44,7 +44,7 @@ model Workspace {
   /// *
   ///    * LIMITS
   maxPostsPerMonth     Int               @default(50)
-  maxTeamMembers       Int               @default(1)
+  maxTeamMembers       Int               @default(5)
   /// *
   ///    * USAGE TRACKING
   monthlyPostCount     Int               @default(0)

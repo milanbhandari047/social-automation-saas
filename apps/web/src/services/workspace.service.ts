@@ -18,7 +18,7 @@ export const createWorkspace = async (name: string) => {
 // GET members
 export const getMembers = async (workspaceId: string) => {
   const res = await api.get(`/members/${workspaceId}`);
-  return res.data.data; // ← backend returns { success, data }
+  return res.data.data // ← backend returns { success, data }
 };
 
 // INVITE member — backend takes userId not email

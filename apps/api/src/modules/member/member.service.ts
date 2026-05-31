@@ -28,6 +28,7 @@ export const getMembersService = async (workspaceId: string) => {
  * INVITE MEMBER
  * =========================
  */
+
 export const inviteMemberService = async (
   workspaceId: string,
   userId: string,
@@ -35,22 +36,27 @@ export const inviteMemberService = async (
 ) => {
   // prevent duplicate member
   const existing = await prisma.workspaceMember.findFirst({
-    where: {
-      workspaceId,
-      userId,
-    },
+    where: { workspaceId, userId },
   });
-
   if (existing) {
     throw new Error("User already in workspace");
   }
 
+  // ← ADD THIS — check plan limit
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
+  if (!workspace) throw new Error("Workspace not found");
+
+  const memberCount = await prisma.workspaceMember.count({
+    where: { workspaceId, role: { not: "OWNER" } },
+  });
+  if (memberCount >= workspace.maxTeamMembers) {
+    throw new Error("Team member limit reached. Upgrade your plan.");
+  }
+
   return prisma.workspaceMember.create({
-    data: {
-      workspaceId,
-      userId,
-      role,
-    },
+    data: { workspaceId, userId, role },
   });
 };
 
