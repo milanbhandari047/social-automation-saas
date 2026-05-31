@@ -11,6 +11,9 @@ import oauthRoutes from "./routes/oauth.routes";
 import analyticsRoutes from "./modules/analytics/routes/analytics.routes";
 import mediaRoutes from "./modules/media/media.routes";
 import aiRoutes from "./modules/ai/ai.routes";
+import memberRoutes from "./modules/member/member.routes";
+
+import userRoutes from "./modules/user/user.routes";
 
 app.use(
   cors({
@@ -29,6 +32,8 @@ app.use("/api/oauth", oauthRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/members", memberRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.json({
