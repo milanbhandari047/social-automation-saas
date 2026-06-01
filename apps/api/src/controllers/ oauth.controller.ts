@@ -1,13 +1,11 @@
 import { handleFacebookCallbackService } from "../services/facebook-oauth.service";
-
 import { generateFacebookLoginUrl } from "../utils/facebook";
 
 /**
  * REDIRECT TO FACEBOOK
  */
 export const redirectToFacebook = async (req: any, res: any) => {
-  const url = generateFacebookLoginUrl(req.user.userId);
-
+  const url = generateFacebookLoginUrl(req.user.id);
   return res.redirect(url);
 };
 
@@ -17,16 +15,16 @@ export const redirectToFacebook = async (req: any, res: any) => {
 export const facebookCallback = async (req: any, res: any) => {
   try {
     const { code, state } = req.query;
+    await handleFacebookCallbackService(code, state);
 
-    const result = await handleFacebookCallbackService(code, state);
-
-    return res.json({
-      message: "Facebook connected successfully",
-      result,
-    });
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/social-accounts?connected=true`
+    );
   } catch (error: any) {
-    return res.status(500).json({
-      message: error.message,
-    });
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/social-accounts?error=${encodeURIComponent(
+        error.message
+      )}`
+    );
   }
 };

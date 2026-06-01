@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
   X,
+  CheckCheck,
 } from "lucide-react";
 import {
   colors,
@@ -19,7 +20,6 @@ import {
   cardStyle,
 } from "@/constants/tokens";
 import { useWorkspaceStore } from "@/store/workspaceStore";
-import { useAuthStore } from "@/store/auth.store";
 import {
   getSocialAccounts,
   deleteSocialAccount,
@@ -117,58 +117,85 @@ const CONNECT_PLATFORMS = [
 
 export default function SocialAccountsPage() {
   const { activeWorkspace } = useWorkspaceStore();
-  const { user } = useAuthStore();
 
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showConnect, setShowConnect] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // ── Load accounts ────────────────────────────────────────
+  const loadAccounts = async (workspaceId: string) => {
+    setLoading(true);
+    try {
+      const data = await getSocialAccounts(workspaceId);
+      setAccounts(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setAccounts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!activeWorkspace?.id) {
       setLoading(false);
       return;
     }
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await getSocialAccounts(activeWorkspace.id);
-        if (Array.isArray(data)) {
-          setAccounts(data);
-        } else if (
-          data &&
-          typeof data === "object" &&
-          "data" in data &&
-          Array.isArray((data as any).data)
-        ) {
-          setAccounts((data as { data: SocialAccount[] }).data);
-        } else {
-          setAccounts([]);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadAccounts(activeWorkspace.id);
   }, [activeWorkspace?.id]);
 
-  const handleConnectFacebook = async () => {
-    if (!activeWorkspace) return;
-    setConnecting(true);
-    // Redirect to backend OAuth endpoint — backend will redirect to Facebook
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth/facebook`;
+  // ── Handle OAuth callback ────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("connected") === "true") {
+      showToast("success", "Facebook account connected successfully!");
+      if (activeWorkspace?.id) {
+        loadAccounts(activeWorkspace.id);
+      }
+      window.history.replaceState({}, "", "/social-accounts");
+    }
+
+    if (params.get("error")) {
+      showToast(
+        "error",
+        decodeURIComponent(params.get("error") || "Connection failed")
+      );
+      window.history.replaceState({}, "", "/social-accounts");
+    }
+  }, [activeWorkspace?.id]);
+
+  // ── Toast helper ─────────────────────────────────────────
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
   };
 
+  // ── Connect Facebook ─────────────────────────────────────
+  const handleConnectFacebook = () => {
+    if (!activeWorkspace) return;
+    setConnecting(true);
+    const token = localStorage.getItem("accessToken");
+    // redirect to backend OAuth — token sent as query param for OAuth flow
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth/facebook?token=${token}`;
+  };
+
+  // ── Delete account ───────────────────────────────────────
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
       await deleteSocialAccount(id);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
+      showToast("success", "Account disconnected.");
     } catch (e) {
       console.error(e);
+      showToast("error", "Failed to disconnect account.");
     } finally {
       setDeletingId(null);
     }
@@ -220,6 +247,61 @@ export default function SocialAccountsPage() {
     <div
       style={{ ...S, display: "flex", flexDirection: "column", gap: "24px" }}
     >
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "24px",
+            right: "24px",
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "12px 16px",
+            borderRadius: radius.lg,
+            background:
+              toast.type === "success"
+                ? "rgba(34,197,94,0.12)"
+                : colors.errorBg,
+            border: `1px solid ${
+              toast.type === "success"
+                ? "rgba(34,197,94,0.3)"
+                : colors.errorBorder
+            }`,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            animation: "slideIn 0.2s ease",
+          }}
+        >
+          {toast.type === "success" ? (
+            <CheckCheck size={16} color={colors.success} />
+          ) : (
+            <AlertCircle size={16} color={colors.error} />
+          )}
+          <span
+            style={{
+              fontSize: typography.size.base,
+              color: toast.type === "success" ? colors.success : colors.error,
+              fontWeight: typography.weight.medium,
+            }}
+          >
+            {toast.message}
+          </span>
+          <button
+            onClick={() => setToast(null)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: colors.textMuted,
+              padding: 0,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -534,7 +616,7 @@ export default function SocialAccountsPage() {
                         height: "32px",
                         borderRadius: radius.md,
                         background: "transparent",
-                        border: `1px solid transparent`,
+                        border: "1px solid transparent",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -607,7 +689,11 @@ export default function SocialAccountsPage() {
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = colors.border;
               }}
-              onClick={() => platform.available && setShowConnect(true)}
+              onClick={() => {
+                if (!platform.available) return;
+                if (platform.key === "FACEBOOK") handleConnectFacebook();
+                else setShowConnect(true);
+              }}
             >
               <div
                 style={{
@@ -866,7 +952,10 @@ export default function SocialAccountsPage() {
         </div>
       )}
 
-      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
     </div>
   );
 }

@@ -5,6 +5,6 @@ export interface PublishPayload {
   content: string;
   accessToken: string;
   accountId: string;
-
-  mediaUrl?: string | null;
+  igUserId?: string;
+  mediaUrl?: string;
 }
